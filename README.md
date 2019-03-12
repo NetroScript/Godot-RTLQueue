@@ -22,7 +22,7 @@ This should be used with a Godot version which is >3.1 this is because the plugi
 
 ## Demo
 
-Soon to come
+A demo project can be found in the [demo_project](https://github.com/NetroScript/Godot-RTLQueue/tree/demo_project) branch.
 
 ## Installation
 
