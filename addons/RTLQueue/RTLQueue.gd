@@ -73,7 +73,9 @@ var bbcodebuffer : String = ""
 var on_newline : bool = true
 # When waiting for input
 var waiting_for_input : bool = false
-
+# List of those closing tags where we need to remove preceding whitespace
+# Theoretically this also needs to be used for pure url, but because [url=] would break then, it is not included, if it is wanted feature I could image a add_url() function
+const SPECIAL_TAGS : PoolStringArray = PoolStringArray(["[/img]"])
 
 # Signals
 
@@ -250,6 +252,9 @@ func _physics_process(delta : float) -> void:
 							else:
 								if i-2 > 0 and currentitem["wl"].size() >= i and (currentitem["wl"][i] in PUNCTUATION) and currentitem["wl"][i-2][ currentitem["wl"][i-2].length()-1] == " ":
 									currentitem["wl"][i-2] = currentitem["wl"][i-2].left(currentitem["wl"][i-2].length()-1)
+								elif i-2 > 0 and word in SPECIAL_TAGS:
+									currentitem["wl"][i-2] = currentitem["wl"][i-2].left(currentitem["wl"][i-2].length()-1)
+							
 							i+=1
 						
 						# It is the start of the query, so in any case the tags like color or bold need to be appended
@@ -315,10 +320,20 @@ func _physics_process(delta : float) -> void:
 								finished = true
 						elif HANDLE_INLINE_BBCODE and word[0]=="[" and not (currentitem.has("ignorebb") and currentitem["ignorebb"]) and word[word.length()-1] == "]":
 							
-							if not USE_APPEND_BBCODE:
-								_append_text(word)
+							if word=="[img]":
+								if not USE_APPEND_BBCODE:
+									_append_text(word)
+									if currentitem["wl"].size() > currentitem["cw"] + 2:
+										_append_text(currentitem["wl"][currentitem["cw"] + 1]+currentitem["wl"][currentitem["cw"] + 2])
+									
+								currentitem["cw"]+=3
 								
-							currentitem["cw"]+=1
+							else:
+							
+								if not USE_APPEND_BBCODE:
+									_append_text(word)
+									
+								currentitem["cw"]+=1
 						else: 
 							# If the current word is new, we check if the line breaks if we add the current word
 							if check_newline:
@@ -417,7 +432,7 @@ func _physics_process(delta : float) -> void:
 					# If it is a pause, pause the execution
 					elif currentitem["e"] == "pause":
 						paused = true
-						emit_signal("paused")
+						emit_signal("pause")
 						
 					# Emit the signal of the operator
 					emit_signal("queue_event", currentitem["e"])
