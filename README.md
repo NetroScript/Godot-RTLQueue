@@ -89,7 +89,7 @@ Following functions all append to the queue, so that the result will show when t
 * `add_wait_for_interaction()` - Pause until the interaction key is pressed
 * `add_clear()` - Clear the current text
 * `add_image(imagepath : String, time : float = 0)` - imagepath should be a string with the "res://" path to the image, there is an optional wait until the image is added in seconds
-* `add_newline()` - Add a newline
+* `add_newline(amount : int = 1)` - Add a newline (you can also supply an integer to add more than 1 newline)
 * `add_pause()` - Pause the execution, the attribute paused has to manually be set to false again
 * `set_color(color : Color)` - If they don't have a text color all following strings will have that color
 

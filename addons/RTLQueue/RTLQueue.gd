@@ -325,6 +325,8 @@ func _physics_process(delta : float) -> void:
 									_append_text(word)
 									if currentitem["wl"].size() > currentitem["cw"] + 2:
 										_append_text(currentitem["wl"][currentitem["cw"] + 1]+currentitem["wl"][currentitem["cw"] + 2])
+								else:
+									label.visible_characters += 1
 									
 								currentitem["cw"]+=3
 								
@@ -440,10 +442,13 @@ func _physics_process(delta : float) -> void:
 					done_queue.append(current_queue.pop_front())
 
 				NEW_LINE:
-					# Append a newline in the current text
-					_append_text("\n")
+					var newlines : String = ""
+					for i in range(currentitem["a"]):
+						newlines+="\n"
+					# Append n newlines in the current text
+					_append_text(newlines)
 					# Increase our amount of newlines
-					current_newlines+=1
+					current_newlines+=currentitem["a"]
 					# Removing the task from the working queue
 					done_queue.append(current_queue.pop_front())
 					on_newline = true
@@ -589,9 +594,10 @@ func add_image(imagepath : String, time : float = 0) -> void:
 	})
 
 # Add a linebreak
-func add_newline() -> void:
+func add_newline(amount : int = 1) -> void:
 	current_queue.append({
-		"type": NEW_LINE
+		"type": NEW_LINE,
+		"a": amount
 	})
 
 # Add a pause, which has to be programatically be set to false
