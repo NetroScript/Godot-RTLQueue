@@ -156,6 +156,7 @@ func init() -> void:
 # Clear the current code, set newlines to zero and reset the text depending on mode
 func clear() -> void:
 	current_newlines = 0
+	on_newline = true
 	if USE_APPEND_BBCODE:
 		label.visible_characters = 0
 	else:
