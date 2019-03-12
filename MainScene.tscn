@@ -99,10 +99,6 @@ FONT = SubResource( 3 )
 FONT_BOLD = SubResource( 5 )
 FONT_BOLD_ITALIC = SubResource( 7 )
 
-[node name="RichTextLabel" type="RichTextLabel" parent="Panel/RTLQueue"]
-margin_right = 40.0
-margin_bottom = 40.0
-
 [node name="Label" type="Label" parent="Panel"]
 anchor_top = 1.0
 anchor_right = 1.0
