@@ -8,7 +8,7 @@ To elaborate this allows you to queue text which is displayed in a control node.
 
 ## Compatibility
 
-This should be used with a Godot version which is >3.1 this is because the plugin uses the optional static typing. Although it should be an rather quick fix to remove all the static typing information so it should also work on Godot 3.0. Godot 2.X is untested.
+This should be used with a Godot version which is >=3.1 this is because the plugin uses the optional static typing. Although it should be an rather quick fix to remove all the static typing information so it should also work on Godot 3.0. Godot 2.X is untested.
 
 ## Features
 
@@ -98,7 +98,15 @@ Following functions all append to the queue, so that the result will show when t
 * `paused` - Is set to true when the queue finishes, decides wether the queue is processed
 * `previous_pages` - If enabled, contains the previous pages in an array (Array of Arrays)
 * `bbcodebuffer` - If append mode is enabled, this will contain all the raw bbcode_text, because append doesn't update it
+* `current_queue` - Items which are currently being processed, if you want to clear the Queue, you can set this to an empty Array
 
+## Differences to GodotTIE
+
+* It is a RichTextLabel instead of a Label, allowing the usage of BBCode
+* Functions which do the same thing have a different name (f.e. add_text instead off buff_text)
+* There is no input mode
+* There are less settings, although this also includes everything I need for my usage
+* For more difference take a look at available attributes and methods
 
 ## Changelog
 
