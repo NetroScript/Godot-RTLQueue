@@ -1,0 +1,113 @@
+[gd_scene load_steps=10 format=2]
+
+[ext_resource path="res://addons/RTLQueue/RTLQueue.gd" type="Script" id=1]
+[ext_resource path="res://addons/RTLQueue/RTLQueue_icon.png" type="Texture" id=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Panel
+
+onready var rtlq = get_node(\"RTLQueue\")
+onready var waitinput = get_node(\"Label\")
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	rtlq.connect(\"awaiting_input\", self, \"_on_need_input\")
+	rtlq.connect(\"got_input\", self, \"_on_got_input\")
+	
+	waitinput.hide()
+	rtlq.add_wait(0.2)
+	rtlq.add_text(\"This is a RichTextLabel where you can freely queue text which moves at a certain speed. This section f.e. has a speed of 20 characters per second.\", 20)
+	rtlq.add_text(\"But of course a much quicker text can be queued too, can you keep up with this speed? After this a break is needed first.\", 40)
+	rtlq.add_wait(5)
+	rtlq.set_color(Color(1,1,0))
+	rtlq.add_newline()
+	rtlq.add_text(\"And a new line, which you need to manually add to the queue because otherwise it will be stripped from the string.\", 20)
+	rtlq.add_text(\"Isn't this much nicer on the eyes?\", 20, {\"bold\": true})
+	rtlq.add_text(\"No it isn't? Then we will go back to white.\", 20)
+	rtlq.set_color(Color(1,1,1))
+	rtlq.add_text(\"After 5 seconds the current screen will be cleared.\", 20)
+	rtlq.add_wait(5)
+	rtlq.add_clear()
+	rtlq.add_text(\"We can also wait for user input before we continue with the queue, we are doing that right now.\", 20)
+	rtlq.add_newline()
+	rtlq.add_wait_for_interaction()
+	rtlq.add_text(\"BTW if enabled you can have [color=#FF0000] inline tags [/color] , but they need to be surrounded with [b][i] spaces [/i][/b] . (But then there can be a block of them)\", 15)
+	rtlq.add_text(\"But then all characters in brackets would be stripped (if no space between them), so for that there is an extra setting, isn't that [cool] ?\", 15, {\"ignorebbcode\": true})
+	rtlq.add_text(\"And did you know - if the text is too slow for you, you can also press space to speed it up by 3! You can set the speedup to any custom multiplicator, so if you want to have slower text when pressing space, go ahead!\", 10)
+	rtlq.add_text(\"The following image is added with add_image(), the one after it is inline.\", 20)
+	rtlq.add_image(\"res://heart.png\")
+	rtlq.add_text(\"- Or do you need some inline [img] res://money.png [/img]  [color=yellow][b] space money [/b][/color] ???\", 20)
+	rtlq.add_newline(3)
+	rtlq.add_text(\"Now a really long text is added ... So the page would need to break as long as you didn't resize the window. So how does the new page look? Or would you prefer no pagination - I mean you can theoretically manually control pages by clearing the text regulary!\", 30)
+
+
+func _on_need_input(type : String) -> void:
+	print(\"Waiting for user input\")
+	print(type)
+	waitinput.show()
+	
+func _on_got_input(type : String) -> void:
+	print(\"Got user input\")
+	print(type)
+	waitinput.hide()"
+
+[sub_resource type="DynamicFontData" id=2]
+font_path = "res://Ubuntu-R.ttf"
+
+[sub_resource type="DynamicFont" id=3]
+size = 18
+font_data = SubResource( 2 )
+
+[sub_resource type="DynamicFontData" id=4]
+font_path = "res://Ubuntu-B.ttf"
+
+[sub_resource type="DynamicFont" id=5]
+size = 18
+font_data = SubResource( 4 )
+
+[sub_resource type="DynamicFontData" id=6]
+font_path = "res://Ubuntu-BI.ttf"
+
+[sub_resource type="DynamicFont" id=7]
+size = 18
+font_data = SubResource( 6 )
+
+[node name="Control" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Panel" type="Panel" parent="."]
+anchor_left = 0.1
+anchor_top = 0.1
+anchor_right = 0.9
+anchor_bottom = 0.1
+margin_bottom = 300.0
+script = SubResource( 1 )
+
+[node name="RTLQueue" type="ReferenceRect" parent="Panel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 20.0
+margin_top = 20.0
+margin_right = -20.0
+margin_bottom = -20.0
+script = ExtResource( 1 )
+__meta__ = {
+"_editor_icon": ExtResource( 2 )
+}
+FONT = SubResource( 3 )
+FONT_BOLD = SubResource( 5 )
+FONT_BOLD_ITALIC = SubResource( 7 )
+
+[node name="RichTextLabel" type="RichTextLabel" parent="Panel/RTLQueue"]
+margin_right = 40.0
+margin_bottom = 40.0
+
+[node name="Label" type="Label" parent="Panel"]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_top = -14.0
+text = "Press Space"
+align = 1
+
