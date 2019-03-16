@@ -15,7 +15,7 @@ _global_script_classes=[ {
 "path": "res://addons/RTLQueue/RTLQueue.gd"
 } ]
 _global_script_class_icons={
-"RTLQueue": ""
+"RTLQueue": "res://addons/RTLQueue/RTLQueue_icon.png"
 }
 
 [application]
