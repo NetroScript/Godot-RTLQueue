@@ -6,15 +6,16 @@
 [sub_resource type="GDScript" id=1]
 script/source = "extends Panel
 
-onready var rtlq = get_node(\"RTLQueue\")
-onready var waitinput = get_node(\"Label\")
+onready var rtlq : RTLQueue = get_node(\"RTLQueue\") as RTLQueue
+onready var waitinput : Label = get_node(\"Label\") as Label
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	rtlq.connect(\"awaiting_input\", self, \"_on_need_input\")
 	rtlq.connect(\"got_input\", self, \"_on_got_input\")
-	
+	rtlq.connect(\"event_end\", self, \"_on_custom_event_end\")
 	waitinput.hide()
+	
 	rtlq.add_wait(0.2)
 	rtlq.add_text(\"This is a RichTextLabel where you can freely queue text which moves at a certain speed. This section f.e. has a speed of 20 characters per second.\", 20)
 	rtlq.add_text(\"But of course a much quicker text can be queued too, can you keep up with this speed? After this a break is needed first.\", 40)
@@ -22,8 +23,8 @@ func _ready():
 	rtlq.set_color(Color(1,1,0))
 	rtlq.add_newline()
 	rtlq.add_text(\"And a new line, which you need to manually add to the queue because otherwise it will be stripped from the string.\", 20)
-	rtlq.add_text(\"Isn't this much nicer on the eyes?\", 20, {\"bold\": true})
-	rtlq.add_text(\"No it isn't? Then we will go back to white.\", 20)
+	rtlq.add_text(\"Isn't this much nicer on the eyes?\", 20, \"\", PoolIntArray([rtlq.OPTIONS_BOLD]))
+	rtlq.add_text(\"No it isn't? Then we will go back to white.\", 20, \"backtowhite\", PoolIntArray(), Color(1,0,1))
 	rtlq.set_color(Color(1,1,1))
 	rtlq.add_text(\"After 5 seconds the current screen will be cleared.\", 20)
 	rtlq.add_wait(5)
@@ -32,7 +33,7 @@ func _ready():
 	rtlq.add_newline()
 	rtlq.add_wait_for_interaction()
 	rtlq.add_text(\"BTW if enabled you can have [color=#FF0000] inline tags [/color] , but they need to be surrounded with [b][i] spaces [/i][/b] . (But then there can be a block of them)\", 15)
-	rtlq.add_text(\"But then all characters in brackets would be stripped (if no space between them), so for that there is an extra setting, isn't that [cool] ?\", 15, {\"ignorebbcode\": true})
+	rtlq.add_text(\"But then all characters in brackets would be stripped (if no space between them), so for that there is an extra setting, isn't that [cool] ?\", 15, \"\", PoolIntArray([rtlq.OPTIONS_IGNOREBBCODE]))
 	rtlq.add_text(\"And did you know - if the text is too slow for you, you can also press space to speed it up by 3! You can set the speedup to any custom multiplicator, so if you want to have slower text when pressing space, go ahead!\", 10)
 	rtlq.add_text(\"The following image is added with add_image(), the one after it is inline.\", 20)
 	rtlq.add_image(\"res://heart.png\")
@@ -49,7 +50,11 @@ func _on_need_input(type : String) -> void:
 func _on_got_input(type : String) -> void:
 	print(\"Got user input\")
 	print(type)
-	waitinput.hide()"
+	waitinput.hide()
+	
+func _on_custom_event_end(event : String) -> void:
+	print(\"The text of a custom event just ended\")
+	print(\"The event was: \" + event)"
 
 [sub_resource type="DynamicFontData" id=2]
 font_path = "res://Ubuntu-R.ttf"
@@ -97,7 +102,7 @@ __meta__ = {
 }
 FONT = SubResource( 3 )
 FONT_BOLD = SubResource( 5 )
-FONT_BOLD_ITALIC = SubResource( 7 )
+FONT_BOLD_ITALICS = SubResource( 7 )
 
 [node name="Label" type="Label" parent="Panel"]
 anchor_top = 1.0

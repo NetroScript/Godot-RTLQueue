@@ -8,9 +8,14 @@
 
 config_version=4
 
-_global_script_classes=[  ]
+_global_script_classes=[ {
+"base": "ReferenceRect",
+"class": "RTLQueue",
+"language": "GDScript",
+"path": "res://addons/RTLQueue/RTLQueue.gd"
+} ]
 _global_script_class_icons={
-
+"RTLQueue": ""
 }
 
 [application]
