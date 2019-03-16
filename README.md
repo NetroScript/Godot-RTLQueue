@@ -4,7 +4,7 @@ RTLQueue
 
 This is a Godot Plugin which adds a RTLQueue Node.
 This Node is similar to, and inspired by [GodotTIE](https://github.com/henriquelalves/GodotTIE).
-To elaborate this allows you to queue text which is displayed in a control node. This text can be multicolor, different sections can have different speeds and more.
+To elaborate this allows you to queue text which is displayed in a control node. This text can be multicolor / bold / underlined / ..., different sections can have different speeds and more.
 
 ## Compatibility
 
@@ -35,7 +35,7 @@ A demo project can be found in the [demo_project](https://github.com/NetroScript
 
 ### Properties Exposed to the Editor
 
-* Font, Font Mono, Font Bold, Font Italic, Font Bold Italic - Fonts used by the RichTextLabel for the corresponding effects, doesn't need to be set
+* Font, Font Mono, Font Bold, Font Italics, Font Bold Italics - Fonts used by the RichTextLabel for the corresponding effects, doesn't need to be set
 * Space Between Parts - If you append 2 String "Text." and "Text2." if a space should be used to join those - the space won't be added if it is on a new line
 * Enable Scrolling - If Scrolling mode should be used instead of page mode
 * Interaction Event - The Input Map event (as String) which is used for all interaction (to continue / speed up)
@@ -68,23 +68,21 @@ A demo project can be found in the [demo_project](https://github.com/NetroScript
 ### Methods you can use
 
 * `init()` - if you change any settings in code (like the current font or the line separation) you can call this method so the script updates itself, this can break pagination
-* `clear()` - Forcefully clear the current text
+* `clear(cleardonequeues : bool = false)` - Forcefully clear the current text, if the optional value is set to true, `done_queue` and `previous_pages` will be emptied
 * `get_max_lines()` - recalculate maximal lines (should not be called, unless you have a project where resizing the text box works (because previous pages will still be the same size, new pages will be the new size))
 
 Following functions all append to the queue, so that the result will show when the previous queue was processed
 
-* `add_text(text : String, characterspersecond : float, options : Dictionary = {})` - options is optional, the other two should explain themself, dictory can have the following properties:
-  * `"color"` - A Color Object
-  * `"event"` - A string containing the event name which should be emitted
-  * `"bold"` - A boolean deciding of the contained text should be bold
-  * `"italic"` - A boolean deciding of the contained text should be italics
-  * `"underlined"` - A boolean deciding of the contained text should be underlined
-  * `"strikethrough"` - A boolean deciding of the contained text should be strikethrough
-  * `"code"` - A boolean deciding of the contained text should be enclosed in code tags
-  * `"right"` - A boolean deciding of the contained text should be enclosed in right tags
-  * `"fill"` - A boolean deciding of the contained text should be enclosed in fill tags
-  * `"center"` - A boolean deciding of the contained text should be enclosed in center tags
-  * `"ignorebbcode"` - A boolean if contained [<tag>] should not be parsed
+* `add_text(text : String, characterpersecond : float, event : String = "", options : PoolIntArray = PoolIntArray(), color : Color = Color(0,1,0,0))` - event (gets emitted once at start, once as end event when the text finished), options (can be multiple) and color (the color with the default values in the function declaration gets ignored) are optional, options can contain the OPTIONS_* enum values:
+  * `OPTIONS_BOLD` - Makes text bold
+  * `OPTIONS_ITALICS` - Makes text italic
+  * `OPTIONS_UNDERLINED` - Makes text underlined
+  * `OPTIONS_STRIKETHROUGH` - Makes text strikethrough
+  * `OPTIONS_CODE` - Text will be enclosed in code tags
+  * `OPTIONS_RIGHT` - Text will be enclosed in right tags
+  * `OPTIONS_FILL` - Text will be enclosed in fill tags
+  * `OPTIONS_CENTER` - Text will be enclosed in center tags
+  * `OPTIONS_IGNOREBBCODE` - Contained [<tag>] will not be parsed
 * `add_wait(time : float)` - Wait for n seconds
 * `add_wait_for_interaction()` - Pause until the interaction key is pressed
 * `add_clear()` - Clear the current text
@@ -110,6 +108,4 @@ Following functions all append to the queue, so that the result will show when t
 
 ## Changelog
 
-* 1.0 - 12.03.2019
- * Initial release
-
+Check it [here](https://github.com/NetroScript/Godot-RTLQueue/blob/master/CHANGELOG.md).

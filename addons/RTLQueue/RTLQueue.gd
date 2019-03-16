@@ -1,14 +1,14 @@
 # Made by NetroScript, this plugin is usable under the MIT License
 # For more information please visit Github: https://github.com/NetroScript/Godot-RTLQueue
-
+class_name RTLQueue
 extends ReferenceRect
 
 # The Fonts should have the same heights
 export var FONT : Font
 export var FONT_MONO : Font
 export var FONT_BOLD : Font
-export var FONT_ITALIC : Font
-export var FONT_BOLD_ITALIC : Font
+export var FONT_ITALICS : Font
+export var FONT_BOLD_ITALICS : Font
 
 # Currently not used for anything, but you can add custom behaviour like being able to view the previous page yourself
 export onready var KEEP_PREVIOUS_QUEUE : bool = true
@@ -49,6 +49,8 @@ onready var done_queue : Array = Array()
 onready var current_queue : Array = Array()
 # Possible Queue types
 enum {NORMAL_TEXT, IMAGE, OPERATOR, WAIT, CLEAR, WAIT_INPUT, NEW_LINE}
+# Possible Queue Options
+enum {OPTIONS_BOLD, OPTIONS_ITALICS, OPTIONS_UNDERLINED, OPTIONS_STRIKETHROUGH, OPTIONS_CODE, OPTIONS_RIGHT, OPTIONS_FILL, OPTIONS_CENTER, OPTIONS_IGNOREBBCODE}
 # Used for time related stuff, to decide whether to do an action or not
 var counter : float = 0
 # If the Skript should be paused
@@ -95,6 +97,7 @@ signal pause() # When an operator in the queue paused it
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	
 	set_physics_process(true)
 	set_process_input(true)
 	add_child(label)
@@ -106,9 +109,10 @@ func _ready() -> void:
 	# Initialize Variable stuff
 	# You can call this again later when changing exportet settings in code
 	init()
-	
+
 
 func init() -> void:
+	
 	# Setting font of the text
 	if FONT != null:
 		label.add_font_override("font", FONT)
@@ -117,10 +121,10 @@ func init() -> void:
 		FONT = label.get_font("")
 	if FONT_BOLD != null:
 		label.set("custom_fonts/bold_font", FONT_BOLD)
-	if FONT_ITALIC != null:
-		label.set("custom_fonts/italics_font", FONT_ITALIC)
-	if FONT_BOLD_ITALIC != null:
-		label.set("custom_fonts/bold_italics_font", FONT_BOLD_ITALIC)
+	if FONT_ITALICS != null:
+		label.set("custom_fonts/italics_font", FONT_ITALICS)
+	if FONT_BOLD_ITALICS != null:
+		label.set("custom_fonts/bold_italics_font", FONT_BOLD_ITALICS)
 	if FONT_MONO != null:
 		label.set("custom_fonts/mono_font", FONT_MONO)
 	
@@ -155,8 +159,10 @@ func init() -> void:
 	else:
 		label.visible_characters = -1
 
+
 # Clear the current code, set newlines to zero and reset the text depending on mode
-func clear() -> void:
+func clear(cleardonequeues : bool = false) -> void:
+	
 	current_newlines = 0
 	on_newline = true
 	if USE_APPEND_BBCODE:
@@ -164,11 +170,15 @@ func clear() -> void:
 	else:
 		label.visible_characters = -1
 		label.bbcode_text = ""
+	if cleardonequeues:
+		previous_pages.resize(0)
+		done_queue.resize(0)
 	bbcodebuffer = ""
 	label.clear()
 
 
 func _input(event : InputEvent) -> void:
+	
 	# When our interaction event is clicked and we are waiting for the next page, we will go to the next page
 	if event.is_action_pressed(INTERACTION_EVENT):
 		if waiting_for_next_page:
@@ -179,14 +189,16 @@ func _input(event : InputEvent) -> void:
 			waiting_for_input = false
 			emit_signal("got_input", "finished_wait_for_input")
 
+
 func next_page() -> void:
+	
 	# Store current page in an object
 	if KEEP_PREVIOUS_QUEUE:
 		previous_pages.append(done_queue)
 		# We make a copy instead of passing the reference
 		previous_pages[previous_pages.size()-1].append(JSON.parse(JSON.print(current_queue[0])))
 	# Empty the queue
-	done_queue = Array()
+	done_queue.resize(0)
 	waiting_for_next_page = false
 	if not ENABLE_SCROLLING:
 		tag_active = true
@@ -197,6 +209,7 @@ func next_page() -> void:
 	emit_signal("next_page")
 
 func get_max_lines() -> int:
+	
 	# Wait for the object to render correclty
 	yield(get_tree(), "idle_frame")
 	max_lines = int(floor(get_size().y / ( FONT.get_height() + LINE_SEPARATION)))
@@ -212,15 +225,14 @@ func _physics_process(delta : float) -> void:
 	else:
 		speed_up = 1
 
-	
 	if not paused and not waiting_for_next_page and not waiting_for_input:
 		if current_queue.size() == 0:
 			emit_signal("queue_finished")
 			emit_signal("awaiting_input", "queue_finished")
 			paused = true
 		else:
-			var currentitem : Dictionary = current_queue[0]
-			match currentitem["type"]:
+			var currentitem : Queueoptions = current_queue[0]
+			match currentitem.type:
 				NORMAL_TEXT:
 					# Increase the speed by speed_up
 					counter+=delta*speed_up
@@ -229,7 +241,7 @@ func _physics_process(delta : float) -> void:
 					var finished : bool = false
 
 					# This is only -1 on the first initialisation so we do our setup stuff here
-					if currentitem["cw"] == -1:
+					if currentitem.currentword == -1:
 						
 						# Add a new space if enabled
 						if SPACE_BETWEEN_PARTS and not on_newline:
@@ -243,17 +255,17 @@ func _physics_process(delta : float) -> void:
 						
 						# Add the spaces again which were lost while splitting the string
 						var i : int = 1
-						for word in currentitem["wl"]:
+						for word in currentitem.wordlist:
 							# If the word is not the last, or doesn't seems to be BBCode add a space to recreate the original string 
-							if not (HANDLE_INLINE_BBCODE and word.length() > 0 and word[0]=="[" and not (currentitem.has("ignorebb") and currentitem["ignorebb"]) and word[word.length()-1] == "]"):
-								if i != currentitem["wl"].size():
-									currentitem["wl"][i-1] += " "
+							if not (HANDLE_INLINE_BBCODE and word.length() > 0 and word[0]=="[" and not flag_enabled(currentitem.flags, OPTIONS_IGNOREBBCODE) and word[word.length()-1] == "]"):
+								if i != currentitem.wordlist.size():
+									currentitem.wordlist[i-1] += " "
 							# If we "strip" tags and punctiation is following, we don't want to add a space
 							else:
-								if i-2 > 0 and currentitem["wl"].size() >= i and (currentitem["wl"][i] in PUNCTUATION) and currentitem["wl"][i-2][ currentitem["wl"][i-2].length()-1] == " ":
-									currentitem["wl"][i-2] = currentitem["wl"][i-2].left(currentitem["wl"][i-2].length()-1)
+								if i-2 > 0 and currentitem.wordlist.size() >= i and (currentitem.wordlist[i] in PUNCTUATION) and currentitem.wordlist[i-2][ currentitem.wordlist[i-2].length()-1] == " ":
+									currentitem.wordlist[i-2] = currentitem.wordlist[i-2].left(currentitem.wordlist[i-2].length()-1)
 								elif i-2 > 0 and word in SPECIAL_TAGS:
-									currentitem["wl"][i-2] = currentitem["wl"][i-2].left(currentitem["wl"][i-2].length()-1)
+									currentitem.wordlist[i-2] = currentitem.wordlist[i-2].left(currentitem.wordlist[i-2].length()-1)
 							
 							i+=1
 						
@@ -261,11 +273,11 @@ func _physics_process(delta : float) -> void:
 						tag_active = true
 						
 						# If a custom event is set, we emit a signal
-						if currentitem["e"] != "":
-							emit_signal("event", currentitem["e"])
+						if currentitem.event != "":
+							emit_signal("event", currentitem.event)
 						
 						# Set the current word which is shown to the first one
-						currentitem["cw"] = 0
+						currentitem.currentword = 0
 
 					# If a new query or a new page we need to write all tags
 					if tag_active:
@@ -274,15 +286,16 @@ func _physics_process(delta : float) -> void:
 						var outtext : String = ""
 						
 						# If there is a custom color, use it, otherwise use the "global" color
-						if "c" in currentitem:
-							outtext += "[color=#"+currentitem["c"].to_html()+"]"
+						if not (currentitem.color.a == 0 and currentitem.color.r == 0 and currentitem.color.g == 1 and currentitem.color.b == 0):
+							outtext += "[color=#"+currentitem.color.to_html()+"]"
 						else:
 							outtext += "[color=#"+last_active_color.to_html()+"]"
 							
 						# Variables to store all flags like bold / centered
 						var flags : String = ""
 						var endingflags : String = ""
-						for flag in currentitem["flags"]:
+						for f in queueoptionsflagstotags(currentitem.flags):
+							var flag : String = f as String
 							flags += "["+flag+"]"
 							endingflags = "[/"+flag+"]"+endingflags
 							
@@ -294,9 +307,9 @@ func _physics_process(delta : float) -> void:
 						if USE_APPEND_BBCODE:
 							outtext += flags
 							
-							var i : int = currentitem["cw"]
-							while i < currentitem["wl"].size():
-								outtext += currentitem["wl"][i]
+							var i : int = currentitem.currentword
+							while i < currentitem.wordlist.size():
+								outtext += currentitem.wordlist[i]
 								i+=1
 							
 							outtext += endingflags
@@ -307,148 +320,150 @@ func _physics_process(delta : float) -> void:
 						# Tags have been added
 						tag_active = false
 
-					# If the current word exists do all the word handling code
-					if currentitem["wl"].size() > currentitem["cw"]:
+					while counter-(1/currentitem.time) > 0:
 						
-						# Current word
-						var word : String = currentitem["wl"][currentitem["cw"]]
-						
-						# Might be obsolente because space is added
-						if word == "":
-							currentitem["cw"]+=1
-							if currentitem["wl"].size() <= currentitem["cw"]:
-								finished = true
-						elif HANDLE_INLINE_BBCODE and word[0]=="[" and not (currentitem.has("ignorebb") and currentitem["ignorebb"]) and word[word.length()-1] == "]":
+						# If the current word exists do all the word handling code
+						if currentitem.wordlist.size() > currentitem.currentword:
 							
-							if word=="[img]":
-								if not USE_APPEND_BBCODE:
-									_append_text(word)
-									if currentitem["wl"].size() > currentitem["cw"] + 2:
-										_append_text(currentitem["wl"][currentitem["cw"] + 1]+currentitem["wl"][currentitem["cw"] + 2])
-								else:
-									label.visible_characters += 1
-									
-								currentitem["cw"]+=3
-								
-							else:
+							# Current word
+							var word : String = currentitem.wordlist[currentitem.currentword]
 							
-								if not USE_APPEND_BBCODE:
-									_append_text(word)
-									
-								currentitem["cw"]+=1
-						else: 
-							# If the current word is new, we check if the line breaks if we add the current word
-							if check_newline:
+							# Might be obsolente because space is added
+							if word == "":
+								currentitem.currentword+=1
+								if currentitem.wordlist.size() <= currentitem.currentword:
+									finished = true
+							elif HANDLE_INLINE_BBCODE and word[0]=="[" and not flag_enabled(currentitem.flags, OPTIONS_IGNOREBBCODE) and word[word.length()-1] == "]":
 								
-								#print("Maximal Lines: " + str(max_lines) + " | Current Lines: " + str(label.get_visible_line_count() + current_newlines))
-								# Only do the checking if the current line is already the max lines (because a change from f.e. line 1 to 2 with 3 max lines doesn't matter)
-								if(label.get_visible_line_count() + current_newlines >= max_lines):
-									# If Using Append mode just make all characters visible, otherwise add the word to the BBCode
-									if USE_APPEND_BBCODE:
-										label.visible_characters += word.length()
-									else: 
+								if word=="[img]":
+									if not USE_APPEND_BBCODE:
 										_append_text(word)
-									# Wait for it to render correctly
-									yield(get_tree(), "idle_frame")
-									#print("New Max Lines: " + str(label.get_visible_line_count() + current_newlines))
-									# If it now exceeds the maximal lines
-									if(label.get_visible_line_count() + current_newlines > max_lines):
-										# Fake Page not being full by decreasing current newlines
-										if ENABLE_SCROLLING:
-											current_newlines -= 1
-										# Emit page full signal and wait for the next page
-										else:
-											waiting_for_next_page = true
-											emit_signal("awaiting_input", "page_full")
-											emit_signal("page_full")
-											#print("We have to open the next page")
-									# After the check eighter reduce visible characters again or remove the word from the box
-									if USE_APPEND_BBCODE:
-										label.visible_characters -= word.length()
+										if currentitem.wordlist.size() > currentitem.currentword + 2:
+											_append_text(currentitem.wordlist[currentitem.currentword + 1]+currentitem.wordlist[currentitem.currentword + 2])
 									else:
-										label.bbcode_text = label.get_bbcode().left(label.get_bbcode().length()-word.length())
-									check_newline = false
-								else:
-									check_newline = false
-
-							# If the current word wouldn't break the line to a new page
-							if not waiting_for_next_page:
-								# If enough time passed to display the character
-								if(counter > 1/currentitem["t"]):
-									# Remove the time for one character, in the case of lag the counter doesn't need to count up again, but would do 1 char on each tick
-									counter -= 1/currentitem["t"]
-
-									# Keep track if the line number increased, if so set newline to true
-									# This might not be needed at all because on_newline is set in add_newline and chance of a query string ending perfectly on a line is really low
-									if label.get_visible_line_count() + current_newlines > last_lines:
-										last_lines = label.get_visible_line_count()  + current_newlines
-										on_newline = true
-									else:
-										on_newline = false
-
-									# If in append mode increase the currently shown characters, otherwise add it to the bbcode text
-									if USE_APPEND_BBCODE:
 										label.visible_characters += 1
-									else:
-										_append_text(word[currentitem["ci"]])
+										
+									currentitem.currentword+=3
 									
-									# Increase the character of the current word
-									currentitem["ci"]+=1
-									# If current characters index is longer than the word switch to character index 0 on the next word an enable checking for newline again
-									if currentitem["ci"] >= word.length():
-										currentitem["ci"] = 0
-										currentitem["cw"]+=1
-										check_newline = true
+								else:
+								
+									if not USE_APPEND_BBCODE:
+										_append_text(word)
+										
+									currentitem.currentword+=1
+							else: 
+								# If the current word is new, we check if the line breaks if we add the current word
+								if check_newline:
+									
+									#print("Maximal Lines: " + str(max_lines) + " | Current Lines: " + str(label.get_visible_line_count() + current_newlines))
+									# Only do the checking if the current line is already the max lines (because a change from f.e. line 1 to 2 with 3 max lines doesn't matter)
+									if label.get_visible_line_count() + current_newlines >= max_lines:
+										# If Using Append mode just make all characters visible, otherwise add the word to the BBCode
+										if USE_APPEND_BBCODE:
+											label.visible_characters += word.length()
+										else: 
+											_append_text(word)
+										# Wait for it to render correctly
+										yield(get_tree(), "idle_frame")
+										#print("New Max Lines: " + str(label.get_visible_line_count() + current_newlines))
+										# If it now exceeds the maximal lines
+										if label.get_visible_line_count() + current_newlines > max_lines:
+											# Fake Page not being full by decreasing current newlines
+											if ENABLE_SCROLLING:
+												current_newlines -= 1
+											# Emit page full signal and wait for the next page
+											else:
+												waiting_for_next_page = true
+												emit_signal("awaiting_input", "page_full")
+												emit_signal("page_full")
+												#print("We have to open the next page")
+										# After the check eighter reduce visible characters again or remove the word from the box
+										if USE_APPEND_BBCODE:
+											label.visible_characters -= word.length()
+										else:
+											label.bbcode_text = label.get_bbcode().left(label.get_bbcode().length()-word.length())
+										check_newline = false
+									else:
+										check_newline = false
+	
+								# If the current word wouldn't break the line to a new page
+								if not waiting_for_next_page:
+									# If enough time passed to display the character
+									if counter > 1/currentitem.time:
+										# Remove the time for one character, in the case of lag the counter doesn't need to count up again, but would do 1 char on each tick
+										counter -= 1/currentitem.time
+										
+										# Keep track if the line number increased, if so set newline to true
+										# This might not be needed at all because on_newline is set in add_newline and chance of a query string ending perfectly on a line is really low
+										if label.get_visible_line_count() + current_newlines > last_lines:
+											last_lines = label.get_visible_line_count()  + current_newlines
+											on_newline = true
+										else:
+											on_newline = false
+											
+										# If in append mode increase the currently shown characters, otherwise add it to the bbcode text
+										if USE_APPEND_BBCODE:
+											label.visible_characters += 1
+										else:
+											_append_text(word[currentitem.currentwordindex])
+										
+										# Increase the character of the current word
+										currentitem.currentwordindex+=1
+										# If current characters index is longer than the word switch to character index 0 on the next word an enable checking for newline again
+										if currentitem.currentwordindex >= word.length():
+											currentitem.currentwordindex = 0
+											currentitem.currentword+=1
+											check_newline = true
+								else:
+									break
 
-					# If this word was the last word in the list, set finished to true
-					if currentitem["wl"].size() <= currentitem["cw"]:
-						finished = true
-
-					# Considering I have no idea if it is passed by reference or copy, we set the current_queue item to the modiefied currentitem
-					current_queue[0] = currentitem
-					
-					# Code when the current text was finished
-					if finished:
-						# If a custom event is set, we emit an end signal
-						if currentitem["e"] != "":
-							emit_signal("event_end", currentitem["e"])
+						# If this word was the last word in the list, set finished to true
+						if currentitem.wordlist.size() <= currentitem.currentword:
+							finished = true
 						
-						# If we do not use the append mode, we now have to close all our tags
-						if not USE_APPEND_BBCODE:
-							currentitem["flags"].invert()
-							var closingflags : String = ""
-							for flag in currentitem["flags"]:
-								closingflags += "[/"+flag+"]"
-							currentitem["flags"].invert()
-							_append_text(closingflags+"[/color]")
-						# Reset our counter
-						counter = 0
+						# Considering I have no idea if it is passed by reference or copy, we set the current_queue item to the modiefied currentitem
+						current_queue[0] = currentitem
 						
-						# Removing the task from the working queue
-						done_queue.append(current_queue.pop_front())
+						# Code when the current text was finished
+						if finished:
+							# If a custom event is set, we emit an end signal
+							if currentitem.event != "":
+								emit_signal("event_end", currentitem.event)
+							
+							# If we do not use the append mode, we now have to close all our tags
+							if not USE_APPEND_BBCODE:
+								var closingflags : String = ""
+								for flag in queueoptionsflagstotags(currentitem.flags).invert():
+									closingflags += "[/"+flag+"]"
+								_append_text(closingflags+"[/color]")
+							# Reset our counter
+							counter = 0
+							
+							# Removing the task from the working queue
+							done_queue.append(current_queue.pop_front())
 
 				OPERATOR:
 					# If we change the color, set the current active color to the new one
-					if currentitem["e"] == "colorchange":
-						last_active_color = currentitem["data"]
+					if currentitem.event == "colorchange":
+						last_active_color = currentitem.color
 					# If it is a pause, pause the execution
-					elif currentitem["e"] == "pause":
+					elif currentitem.event == "pause":
 						paused = true
 						emit_signal("pause")
 						
 					# Emit the signal of the operator
-					emit_signal("queue_event", currentitem["e"])
+					emit_signal("queue_event", currentitem.event)
 					# Removing the task from the working queue
 					done_queue.append(current_queue.pop_front())
 
 				NEW_LINE:
 					var newlines : String = ""
-					for i in range(currentitem["a"]):
+					for i in range(currentitem.repeat):
 						newlines+="\n"
 					# Append n newlines in the current text
 					_append_text(newlines)
 					# Increase our amount of newlines
-					current_newlines+=currentitem["a"]
+					current_newlines+=currentitem.repeat
 					# Removing the task from the working queue
 					done_queue.append(current_queue.pop_front())
 					on_newline = true
@@ -460,7 +475,7 @@ func _physics_process(delta : float) -> void:
 						queue_start = false
 						emit_signal("queue_wait_start")
 					# If the wait time is over emit wait end and move on to the next task
-					if counter > currentitem["t"]:
+					if counter > currentitem.time:
 						queue_start = true
 						emit_signal("queue_wait_end")
 						counter = 0
@@ -482,16 +497,16 @@ func _physics_process(delta : float) -> void:
 
 				IMAGE:
 					counter+=delta*speed_up
-					if counter > currentitem["t"]:
+					if counter > currentitem.time:
 						
 						# Add the image to the text box
-						_append_text(currentitem["path"])
+						_append_text(currentitem.wordlist[0])
 						# If it is Append Mode we have to increase the shown characters
 						if USE_APPEND_BBCODE:
 							label.visible_characters += 1
 						
 						# If this would be more than the maximal lines on line break 
-						if(last_lines >= max_lines):
+						if last_lines >= max_lines:
 							# Wait for it to render correctly
 							yield(get_tree(), "idle_frame")
 							# If more than maximal lines wait for the next page, remove the added image (or make it invisible) and prevent removing this image from the pending queue
@@ -501,123 +516,98 @@ func _physics_process(delta : float) -> void:
 								if USE_APPEND_BBCODE:
 									label.visible_characters -= 1
 								else:
-									label.bbcode_text = label.get_bbcode().left(label.get_bbcode().length()-currentitem["path"].length())
+									label.bbcode_text = label.get_bbcode().left(label.get_bbcode().length()-currentitem.wordlist[0].length())
 								return
-						
 							
 						counter = 0
 						# Removing the task from the working queue
 						done_queue.append(current_queue.pop_front())
 
+
 # Add text to the RichTextLabel
 # Needs a text string and how many characters per second should be displayed
 # Optionally a dictionary can be supplied which can have the options in the settings variable
-func add_text(text : String, characterpersecond : float, options : Dictionary = {}) -> void:
+func add_text(text : String, characterpersecond : float, event : String = "", options : PoolIntArray = PoolIntArray(), color : Color = Color(0,1,0,0)) -> void:
 
 	# Remove a newline character, otherwise it wouldn't be kept track of and the code for pages would break
 	text = text.replacen("\n", "")
 
-	# Possible options and their default value
-	var settings : Dictionary = {
-		"color": options["color"] if options.has("color") else Color(0,1,0,0),
-		"event": options["event"] if options.has("event") else "",
-		"bold" : options["bold"] if options.has("bold") else false,
-		"italic" : options["italic"] if options.has("italic") else false,
-		"underlined" : options["underlined"] if options.has("underlined") else false,
-		"strikethrough" : options["strikethrough"] if options.has("strikethrough") else false,
-		"code" : options["code"] if options.has("code") else false,
-		"right" : options["right"] if options.has("right") else false,
-		"fill" : options["fill"] if options.has("fill") else false,
-		"center" : options["center"]  if options.has("center") else false,
-		"ignorebbcode": options["ignorebbcode"] if options.has("ignorebbcode") else false
-	}
+	var queueoptions : Queueoptions = Queueoptions.new(NORMAL_TEXT)
+	queueoptions.wordlist = PoolStringArray(text.split(" "))
+	queueoptions.time = characterpersecond
+	queueoptions.event = event
+	queueoptions.flags = array_to_queueoptionsflags(options)
+	queueoptions.color = color
 	
-	# Object which will be pushed into queue
-	var obj : Dictionary = {
-		"type": NORMAL_TEXT,
-		"t": characterpersecond,
-		"wl": PoolStringArray(text.split(" ")),
-		"cw": -1,
-		"ci": 0,
-		"e": settings.event,
-		"flags": []
-		}
-	# If the options object has a non default color, add a color attribute to the Object
-	# Additionally add all the BBCode flags
-	if !(settings.color.a == 0 && settings.color.r == 0 && settings.color.g == 1 && settings.color.b == 0):
-		obj["c"] = settings.color
-	# In the case that you want to write a single word in brackets without it being appended instantly set this to true
-	if settings.ignorebbcode:
-		obj["ignorebb"] = true
-	if settings.bold:
-		obj.flags.append("b")
-	if settings.italic:
-		obj.flags.append("i")
-	if settings.underlined:
-		obj.flags.append("u")
-	if settings.strikethrough:
-		obj.flags.append("s")
-	if settings.code: 
-		obj.flags.append("code")
-	if settings.center:
-		obj.flags.append("center")
-	if settings.right:
-		obj.flags.append("right")
-	if settings.fill:
-		obj.flags.append("fill")
-	current_queue.append(obj)
+	current_queue.append(queueoptions)
+
+
 
 # Push a wait time in seconds
 func add_wait(time : float) -> void:
-	current_queue.append({
-		"type": WAIT,
-		"t": time,
-	})
+	
+	var queueoptions : Queueoptions = Queueoptions.new(WAIT)
+	queueoptions.time = time
+	
+	current_queue.append(queueoptions)
+
 
 func add_wait_for_interaction() -> void:
-	current_queue.append({
-		"type": WAIT_INPUT,
-	})
+	
+	var queueoptions : Queueoptions = Queueoptions.new(WAIT_INPUT)
+	
+	current_queue.append(queueoptions)
+
 
 func add_clear() -> void:
-	current_queue.append({
-		"type": CLEAR,
-	})
+	
+	var queueoptions : Queueoptions = Queueoptions.new(CLEAR)
+	
+	current_queue.append(queueoptions)
+
 
 # Add an image in the textbox, optional delay until it is added in seconds
 # The intended way is to use images which are as high as the line, fix it yourself if you are using bigger images
-func add_image(imagepath : String, time : float = 0) -> void:
-	current_queue.append({
-		"type": IMAGE,
-		"t": time,
-		"path": "[img]"+imagepath+"[/img]"
-	})
+func add_image(imagepath : String, time : float = 0.0) -> void:
+	
+	var queueoptions : Queueoptions = Queueoptions.new(IMAGE)
+	queueoptions.time = time
+	queueoptions.wordlist = PoolStringArray(["[img]"+imagepath+"[/img]"])
+	
+	current_queue.append(queueoptions)
+
 
 # Add a linebreak
 func add_newline(amount : int = 1) -> void:
-	current_queue.append({
-		"type": NEW_LINE,
-		"a": amount
-	})
+	
+	var queueoptions : Queueoptions = Queueoptions.new(NEW_LINE)
+	queueoptions.repeat = amount
+	
+	current_queue.append(queueoptions)
+
 
 # Add a pause, which has to be programatically be set to false
 func add_pause() -> void:
-	current_queue.append({
-		"type": OPERATOR,
-		"e": "pause"
-	})
+	
+	var queueoptions : Queueoptions = Queueoptions.new(OPERATOR)
+	queueoptions.event = "pause"
+	
+	current_queue.append(queueoptions)
+
 
 # Set the global color starting from this item
 func set_color(color : Color) -> void:
-	current_queue.append({
-		"type": OPERATOR,
-		"t": 0,
-		"data": color,
-		"e": "colorchange"
-	})
 	
+	var queueoptions : Queueoptions = Queueoptions.new(OPERATOR)
+	queueoptions.event = "colorchange"
+	queueoptions.color = color
+	
+	current_queue.append(queueoptions)
+
+
 # Append text differently depending on the current mode
 func _append_text(text : String) -> void:
+	
 	if USE_APPEND_BBCODE:
 		bbcodebuffer += text
 #warning-ignore:return_value_discarded
@@ -625,9 +615,72 @@ func _append_text(text : String) -> void:
 	else:
 		label.bbcode_text += text
 
+
 # Our resize event
 func _on_resize() -> void:
+	
 	if USE_APPEND_BBCODE:
 		label.clear()
 #warning-ignore:return_value_discarded
 		label.append_bbcode(bbcodebuffer)
+
+
+# Using a queueoptions object with all possible options to enable better code completion (enjoy the green numbers on the left side)
+class Queueoptions:
+	
+	var type : int
+	var color : Color = Color(0,1,0,0)
+	var time : float = 0
+	var event : String = ""
+	var repeat : int = 0
+	var flags : int = 0
+	var wordlist : PoolStringArray = PoolStringArray()
+	var currentword : int = -1
+	var currentwordindex : int = 0
+	
+	func _init(type : int):
+		self.type = type 
+
+
+# Functions to simulate bit flags, so we just store a single integer in the Queueoptions class
+func flag_enabled(flags : int, index : int) -> bool:
+    return flags & (1 << index) != 0
+
+
+func enable_flag(flags : int, index : int) -> int:
+    return flags | (1 << index)
+
+
+func disable_flag(flags : int, index : int) -> int:
+    return flags & ~(1 << index)
+
+
+# Functionsto quickly turn an array with the OPTIONS_ enum into the correct flags for the Queueoptions class
+func array_to_queueoptionsflags(array : PoolIntArray) -> int:
+	
+	var flags : int = 0
+	var possibleoptions : PoolIntArray = PoolIntArray([OPTIONS_BOLD, OPTIONS_ITALICS, OPTIONS_UNDERLINED, OPTIONS_STRIKETHROUGH, OPTIONS_CODE, OPTIONS_RIGHT, OPTIONS_FILL, OPTIONS_CENTER, OPTIONS_IGNOREBBCODE])
+	
+	var i : int = 0
+	for x in possibleoptions:
+		var option : int = possibleoptions[i]
+		if option in array:
+			flags = enable_flag(flags, i)
+		i+= 1
+
+	return flags
+
+
+# Function to quickly turn Queueoptions flags into the correct tags
+func queueoptionsflagstotags(flags : int) -> PoolStringArray:
+	
+	var possibletags: PoolStringArray = PoolStringArray(["b", "i", "u", "s", "code", "right", "fill", "center"])
+	
+	var i : int = possibletags.size() - 1
+	
+	while i > -1:
+		if not flag_enabled(flags, i):
+			possibletags.remove(i)
+		i -= 1
+
+	return possibletags
