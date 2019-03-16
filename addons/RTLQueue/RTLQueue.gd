@@ -1,6 +1,6 @@
 # Made by NetroScript, this plugin is usable under the MIT License
 # For more information please visit Github: https://github.com/NetroScript/Godot-RTLQueue
-class_name RTLQueue
+class_name RTLQueue, "res://addons/RTLQueue/RTLQueue_icon.png"
 extends ReferenceRect
 
 # The Fonts should have the same heights
