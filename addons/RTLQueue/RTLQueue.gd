@@ -41,6 +41,8 @@ export var PUNCTUATION : PoolStringArray = PoolStringArray([",", ";", ".", "!", 
 # Disadvantages: Unexpected Behaviour (especially considering line-break detection), breaks on resize (Although the script already adds the previous Content on resize again), if you add a tag previously (f.e. center) it will not count for further added Strings
 export var USE_APPEND_BBCODE : bool = true
 
+# If set, waits for user interaction key and then emits custom event
+export var WAIT_FOR_INPUT_ON_FINISH : bool = true
 
 onready var max_lines : int = 0
 onready var label : RichTextLabel = RichTextLabel.new()
@@ -78,11 +80,15 @@ var waiting_for_input : bool = false
 # List of those closing tags where we need to remove preceding whitespace
 # Theoretically this also needs to be used for pure url, but because [url=] would break then, it is not included, if it is wanted feature I could image a add_url() function
 const SPECIAL_TAGS : PoolStringArray = PoolStringArray(["[/img]"])
+# Already parsed queues to decide if the element was just initialised
+var parsedqueues : int = 0
+
 
 # Signals
 
 signal next_page() # When the next page starts to be displayed
 signal queue_finished() # When the to do queue is empty
+signal queue_finished_and_waited() # When the queue is empty and the player confirmed with space
 signal event(event) # When a text has a custom event and it starts to be written
 signal event_end(event) # When the text of a specific event finished writing
 signal page_full() # When the script waits for the input event until continuing
@@ -161,7 +167,7 @@ func init() -> void:
 
 
 # Clear the current code, set newlines to zero and reset the text depending on mode
-func clear(cleardonequeues : bool = false) -> void:
+func clear(extendedclear : bool = false) -> void:
 	
 	current_newlines = 0
 	on_newline = true
@@ -170,9 +176,14 @@ func clear(cleardonequeues : bool = false) -> void:
 	else:
 		label.visible_characters = -1
 		label.bbcode_text = ""
-	if cleardonequeues:
+	if extendedclear:
 		previous_pages.resize(0)
 		done_queue.resize(0)
+		waiting_for_input = false
+		waiting_for_next_page = false
+		parsedqueues = 0
+		paused = false
+		
 	bbcodebuffer = ""
 	label.clear()
 
@@ -186,8 +197,13 @@ func _input(event : InputEvent) -> void:
 			emit_signal("got_input", "changed_page")
 		# When wait event continue with the data
 		if waiting_for_input:
-			waiting_for_input = false
-			emit_signal("got_input", "finished_wait_for_input")
+			if WAIT_FOR_INPUT_ON_FINISH and paused:
+				waiting_for_input = false
+				emit_signal("queue_finished_and_waited")
+				emit_signal("got_input", "finished_wait_for_queueend")
+			else:
+				waiting_for_input = false
+				emit_signal("got_input", "finished_wait_for_input")
 
 
 func next_page() -> void:
@@ -227,9 +243,12 @@ func _physics_process(delta : float) -> void:
 
 	if not paused and not waiting_for_next_page and not waiting_for_input:
 		if current_queue.size() == 0:
-			emit_signal("queue_finished")
-			emit_signal("awaiting_input", "queue_finished")
-			paused = true
+			if parsedqueues > 0:
+				emit_signal("queue_finished")
+				paused = true
+				if WAIT_FOR_INPUT_ON_FINISH:
+					waiting_for_input = true
+					emit_signal("awaiting_input", "queue_finished")
 		else:
 			var currentitem : Queueoptions = current_queue[0]
 			match currentitem.type:
@@ -441,6 +460,7 @@ func _physics_process(delta : float) -> void:
 							
 							# Removing the task from the working queue
 							done_queue.append(current_queue.pop_front())
+							parsedqueues+=1
 
 				OPERATOR:
 					# If we change the color, set the current active color to the new one
@@ -455,6 +475,7 @@ func _physics_process(delta : float) -> void:
 					emit_signal("queue_event", currentitem.event)
 					# Removing the task from the working queue
 					done_queue.append(current_queue.pop_front())
+					parsedqueues+=1
 
 				NEW_LINE:
 					var newlines : String = ""
@@ -466,6 +487,7 @@ func _physics_process(delta : float) -> void:
 					current_newlines+=currentitem.repeat
 					# Removing the task from the working queue
 					done_queue.append(current_queue.pop_front())
+					parsedqueues+=1
 					on_newline = true
 
 				WAIT:
@@ -481,12 +503,14 @@ func _physics_process(delta : float) -> void:
 						counter = 0
 						# Removing the task from the working queue
 						done_queue.append(current_queue.pop_front())
+						parsedqueues+=1
 
 				CLEAR:
 					clear()
 					emit_signal("bbcode_cleared")
 					# Removing the task from the working queue
 					done_queue.append(current_queue.pop_front())
+					parsedqueues+=1
 
 				WAIT_INPUT:
 					waiting_for_input = true
@@ -494,6 +518,7 @@ func _physics_process(delta : float) -> void:
 					emit_signal("awaiting_input", "paused_until_input")
 					# Removing the task from the working queue
 					done_queue.append(current_queue.pop_front())
+					parsedqueues+=1
 
 				IMAGE:
 					counter+=delta*speed_up
@@ -522,6 +547,7 @@ func _physics_process(delta : float) -> void:
 						counter = 0
 						# Removing the task from the working queue
 						done_queue.append(current_queue.pop_front())
+						parsedqueues+=1
 
 
 # Add text to the RichTextLabel

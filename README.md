@@ -43,11 +43,13 @@ A demo project can be found in the [demo_project](https://github.com/NetroScript
 * Handle Inline BBCode - If set the script will check for opening and closing square brackets to instantly append then instead of revealing 1 char at a time - for it to work the brackets need to be surrounded by spaces (but it can also be multiple BBCode Tags next to each other without a tag)
 * Punctuation - There are same cases where you have to leave spaces for the BBCode, but don't actually dont want to have a space there, in this PoolArray you can add the exceptions where the space will be removed. (F.e. "[b] Test [/b] ." - Space between . and Test is unwanted, so it is removed)
 * Use Append BBCode - If append_bbcode() is used or bbcode_text+= - more is is said in features, it is best to try out what works for you, considering this is a simple toggle 
+* Wait For Input On Finish - If the queue is empty, additionally wait for another interaction input and emit a signal when that input was given
 
 ### Signals
 
 * `next_page()` - Emitted when the next page is being displayed
 * `queue_finished()` - Emitted when all elements in the queue were processed
+* `queue_finished_and_waited()` - Emitted when all elements in the queue were processed, Wait for Input on Finish is set to true and a interaction key was pressed
 * `event(event)` - Emitted when a text has a custom event and the first letter is written. `event` is the string supplied by the user.
 * `event_end(event)` - Emitted when a text has a custom event and the last letter is written. `event` is the string supplied by the user.
 * `page_full()` - Emitted when the page is full (and the script is being paused because it is full) - only emitted in paginated mode
@@ -58,17 +60,18 @@ A demo project can be found in the [demo_project](https://github.com/NetroScript
 * `paused_until_input()` - Emitted when it is waiting for user input (through the queue item)
 * `awaiting_input(type)` - Generally when awaiting user input (so you don't have to listen for every signal when input is needed) - Following types currently:
   * `paused_until_input`
-  * `queue_finished`
+  * `queue_finished` - Only emitted when Wait For Input On Finish is set to true
   * `page_full`
 * `got_input(type)` - When the needed input was supplied - Following types:
   * `changed_page`
   * `finished_wait_for_input`
+  * `finished_wait_for_queueend` - Only emitted when Wait For Input On Finish is set to true
 * `pause()` - Emitted when an item in the queue paused the queue
   
 ### Methods you can use
 
 * `init()` - if you change any settings in code (like the current font or the line separation) you can call this method so the script updates itself, this can break pagination
-* `clear(cleardonequeues : bool = false)` - Forcefully clear the current text, if the optional value is set to true, `done_queue` and `previous_pages` will be emptied
+* `clear(extendedclear : bool = false)` - Forcefully clear the current text, if the optional value is set to true, `done_queue` and `previous_pages` and other variables will be reset
 * `get_max_lines()` - recalculate maximal lines (should not be called, unless you have a project where resizing the text box works (because previous pages will still be the same size, new pages will be the new size))
 
 Following functions all append to the queue, so that the result will show when the previous queue was processed
@@ -93,7 +96,7 @@ Following functions all append to the queue, so that the result will show when t
 
 ### Attributes which might be interesting
 
-* `paused` - Is set to true when the queue finishes, decides wether the queue is processed
+* `paused` - Is set to true when the queue finishes, decides whether the queue is processed
 * `previous_pages` - If enabled, contains the previous pages in an array (Array of Arrays)
 * `bbcodebuffer` - If append mode is enabled, this will contain all the raw bbcode_text, because append doesn't update it
 * `current_queue` - Items which are currently being processed, if you want to clear the Queue, you can set this to an empty Array
